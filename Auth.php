@@ -13,6 +13,27 @@ class Auth
         $this->session = $session;
     }
 
+    // return true if registration is successful, false if user already exists or other error occurs
+    public function register(string $username, string $password): bool
+    {
+        try {
+            $hashedPassword = password_hash($password, PASSWORD_ARGON2ID);
+            $stmt = $this->db->prepare(
+                "INSERT INTO users (username, password) VALUES (:username, :password)",
+            );
+            return $stmt->execute([
+                "username" => $username,
+                "password" => $hashedPassword,
+            ]);
+        } catch (PDOException $e) {
+            // 23000 = unique constraint violation
+            if ($e->getCode() === 23000) {
+                return false;
+            }
+            throw $e;
+        }
+    }
+
     public function login(string $username, string $password): bool
     {
         $stmt = $this->db->prepare(
